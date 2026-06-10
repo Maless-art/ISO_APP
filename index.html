@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ISO - International Supply Order</title>
+  <title>ISO - International Sales Order</title>
   <link rel="icon" type="image/png" sizes="192x192" href="logo-192.png">
   <link rel="apple-touch-icon" href="logo-192.png">
   <link rel="manifest" href="manifest.json">
@@ -379,7 +379,7 @@
           <img class="brand-logo" src="logo-192.png" alt="Logo ISO">
           <div class="brand-text">
             <p class="empresa">Lubricantes y Químicos, S. A.</p>
-            <span class="app-name">ISO - International Supply Order</span>
+            <span class="app-name">ISO - International Sales Order</span>
           </div>
         </div>
         <p class="titulo">Gestión de pedidos internacionales</p>
@@ -507,6 +507,10 @@
 
   </div>
 
+  <!-- Firebase SDK compat para app HTML sin build/npm -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
   <script>
     const KEY = "pedidosInternacionales_v2";
 
@@ -522,6 +526,19 @@
       console.error("No se pudo leer la información guardada. Se iniciará una base limpia.", e);
       data = { proveedores: {} };
     }
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBRAVJxHbd2keGBjMuAzpW9rTeRCYPI",
+      authDomain: "iso-applq.firebaseapp.com",
+      projectId: "iso-applq",
+      storageBucket: "iso-applq.firebasestorage.app",
+      messagingSenderId: "440030255275",
+      appId: "1:440030255275:web:25baf9fbe51bc712cdbfee"
+    };
+
+    let db = null;
+    let firebaseActivo = false;
+    let sincronizandoDesdeFirebase = false;
     let proveedorActual = "";
 
     const proveedorSelect = document.getElementById("proveedorSelect");
@@ -552,6 +569,63 @@
 
     function guardarData() {
       localStorage.setItem(KEY, JSON.stringify(data));
+
+      if (firebaseActivo && db && !sincronizandoDesdeFirebase) {
+        db.collection("iso_app").doc("estado_general").set({
+          data: data,
+          actualizadoEl: new Date().toISOString()
+        }).catch(function(error) {
+          console.error("No se pudo guardar en Firebase:", error);
+        });
+      }
+    }
+
+    function iniciarFirebase() {
+      if (!window.firebase) {
+        console.warn("Firebase SDK no está disponible. ISO seguirá usando localStorage.");
+        return;
+      }
+
+      try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        firebaseActivo = true;
+
+        const docRef = db.collection("iso_app").doc("estado_general");
+
+        docRef.onSnapshot(function(doc) {
+          if (doc.exists && doc.data() && doc.data().data) {
+            sincronizandoDesdeFirebase = true;
+            data = doc.data().data;
+
+            if (!data || typeof data !== "object" || !data.proveedores || typeof data.proveedores !== "object") {
+              data = { proveedores: {} };
+            }
+
+            localStorage.setItem(KEY, JSON.stringify(data));
+            cargarProveedores();
+
+            if (proveedorActual && data.proveedores[proveedorActual]) {
+              proveedorSelect.value = proveedorActual;
+              seleccionarProveedor(proveedorActual);
+            } else if (proveedorActual) {
+              proveedorActual = "";
+              proveedorSelect.value = "";
+              seleccionarProveedor("");
+            }
+
+            sincronizandoDesdeFirebase = false;
+          } else {
+            // Primer uso: subir a Firebase lo que ya exista localmente.
+            guardarData();
+          }
+        }, function(error) {
+          console.error("No se pudo escuchar Firebase:", error);
+        });
+      } catch (error) {
+        firebaseActivo = false;
+        console.error("No se pudo iniciar Firebase. ISO seguirá usando localStorage.", error);
+      }
     }
 
     function formato2(valor) {
@@ -1224,6 +1298,7 @@
 
     actualizarEncabezadoCompra();
     cargarProveedores();
+    iniciarFirebase();
   </script>
 
   <script>
