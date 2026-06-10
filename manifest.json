@@ -1,0 +1,25 @@
+{
+  "name": "ISO - International Supply Order",
+  "short_name": "ISO",
+  "description": "Gestión de pedidos internacionales",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f5f7",
+  "theme_color": "#0b3d91",
+  "lang": "es-PA",
+  "icons": [
+    {
+      "src": "logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

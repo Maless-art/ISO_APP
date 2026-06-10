@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ISO - International Supply Order</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="logo-192.png">
+  <link rel="apple-touch-icon" href="logo-192.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b3d91">
+<style>
+    :root {
+      --azul: #0b3d91;
+      --azul-claro: #2f6fd6;
+      --gris-fondo: #f3f5f7;
+      --gris-card: #ffffff;
+      --gris-borde: #d7dde5;
+      --gris-inactivo: #8d96a3;
+      --texto: #1e293b;
+      --rojo: #ffd6d6;
+      --naranja: #ffe4b5;
+      --verde: #d8f5d0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--gris-fondo);
+      color: var(--texto);
+    }
+
+    .app {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 12px;
+    }
+
+    .card {
+      background: var(--gris-card);
+      border: 1px solid var(--gris-borde);
+      border-radius: 13px;
+      box-shadow: 0 8px 22px rgba(0,0,0,.06);
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .topbar {
+      padding: 9px 16px;
+      border-bottom: 3px solid var(--azul);
+      background: linear-gradient(180deg,#fff,#f8fafc);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 54px;
+      height: 54px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 3px 10px rgba(0,0,0,.10);
+      flex: 0 0 auto;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .app-name {
+      font-size: 13px;
+      font-weight: 900;
+      color: #475569;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .empresa {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--azul);
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    .titulo {
+      margin: 0;
+      font-size: 13px;
+      color: #475569;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .panel {
+      padding: 10px 16px 12px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      color: #334155;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--gris-borde);
+      border-radius: 10px;
+      background: #fff;
+      font-size: 13px;
+      outline: none;
+      height: 38px;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--azul);
+      box-shadow: 0 0 0 3px rgba(11,61,145,.12);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    button {
+      border: 0;
+      background: var(--azul);
+      color: #fff;
+      padding: 8px 13px;
+      border-radius: 11px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 13px;
+      box-shadow: 0 4px 0 #062a66;
+      transition: transform .06s ease, box-shadow .06s ease, background .12s ease;
+    }
+
+    button:hover {
+      background: #124ba8;
+    }
+
+    button:active {
+      background: var(--azul-claro);
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #062a66;
+    }
+
+    button:disabled {
+      background: var(--gris-inactivo);
+      box-shadow: 0 4px 0 #676f78;
+      cursor: not-allowed;
+      opacity: .85;
+    }
+
+    .danger {
+      background: #b42318;
+      box-shadow: 0 4px 0 #7a1710;
+    }
+
+    .danger:hover {
+      background: #c72b1e;
+    }
+
+    .separator {
+      height: 2px;
+      background: var(--azul);
+      border-radius: 999px;
+      margin: 10px 0;
+      opacity: .95;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #e8eef9;
+      color: var(--azul);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--gris-borde);
+      border-radius: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1250px;
+      background: #fff;
+    }
+
+    th {
+      background: var(--azul);
+      color: #fff;
+      font-size: 12px;
+      padding: 10px 8px;
+      text-align: left;
+    }
+
+    th small {
+      font-size: 10px;
+      opacity: .9;
+    }
+
+    td {
+      border-bottom: 1px solid #e5eaf0;
+      padding: 7px;
+      vertical-align: middle;
+    }
+
+    td input {
+      border-radius: 8px;
+      padding: 8px;
+      height: 34px;
+    }
+
+    .num input {
+      text-align: right;
+    }
+
+    .calc {
+      font-weight: 800;
+      text-align: right;
+      border-radius: 8px;
+      padding: 9px 8px;
+      display: block;
+      min-height: 34px;
+    }
+
+    .stock-rojo {
+      background: var(--rojo);
+      color: #8a1111;
+    }
+
+    .stock-naranja {
+      background: var(--naranja);
+      color: #8a5200;
+    }
+
+    .stock-verde {
+      background: var(--verde);
+      color: #1f6b1f;
+    }
+
+    .empty {
+      padding: 18px;
+      text-align: center;
+      color: #64748b;
+      font-weight: 700;
+      background: #f8fafc;
+    }
+
+
+    .historial-panel {
+      display: none;
+      margin-top: 12px;
+      border: 1px solid var(--gris-borde);
+      border-radius: 14px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    .historial-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #e8eef9;
+      border-bottom: 1px solid var(--gris-borde);
+      font-weight: 800;
+      color: var(--azul);
+    }
+
+    .historial-body {
+      padding: 12px;
+    }
+
+    .historial-lista {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .historial-lista select {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .historial-table {
+      min-width: 1250px;
+    }
+
+    .hist-num {
+      text-align: right;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .historial-detalle-title {
+      font-weight: 800;
+      margin: 6px 0 10px;
+      color: #334155;
+    }
+
+    .btn-secundario {
+      background: #475569;
+      box-shadow: 0 4px 0 #273244;
+    }
+
+    .btn-secundario:hover {
+      background: #334155;
+    }
+
+    @media(max-width: 900px) {
+      .topbar {
+        display: block;
+      }
+
+      .titulo {
+        text-align: left;
+        margin-top: 3px;
+      }
+
+      .brand-logo {
+        width: 46px;
+        height: 46px;
+      }
+
+
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      .app {
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <div class="card">
+      <div class="topbar">
+        <div class="brand">
+          <img class="brand-logo" src="logo-192.png" alt="Logo ISO">
+          <div class="brand-text">
+            <p class="empresa">Lubricantes y Químicos, S. A.</p>
+            <span class="app-name">ISO - International Supply Order</span>
+          </div>
+        </div>
+        <p class="titulo">Gestión de pedidos internacionales</p>
+      </div>
+
+      <div class="panel">
+        <div class="row">
+          <div>
+            <label>Proveedor</label>
+            <select id="proveedorSelect">
+              <option value="">Seleccione un proveedor</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Crear nuevo proveedor</label>
+            <input id="nuevoProveedor" placeholder="Nombre del Proveedor">
+          </div>
+
+          <div>
+            <label>Preparado por</label>
+            <input id="preparadoPor" placeholder="Nombre del solicitante">
+          </div>
+
+          <div>
+            <label>Estado del pedido</label>
+            <select id="estadoPedido">
+              <option>Borrador</option>
+              <option>Enviado</option>
+              <option>Recibido</option>
+              <option>Cerrado</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="btnCrear">+ Crear proveedor</button>
+          <button id="btnGuardar" disabled>Guardar pedido</button>
+          <button id="btnHistorial" disabled>Consultar pedidos anteriores</button>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="row">
+          <div>
+            <label>Nombre del proveedor</label>
+            <input id="nombreProveedor" readonly>
+          </div>
+
+          <div>
+            <label>Último pedido registrado</label>
+            <input id="fechaUltimoPedido" readonly>
+          </div>
+
+          <div>
+            <label>Fecha pedido actual</label>
+            <input id="fechaActual" type="date">
+          </div>
+
+
+          <div>
+            <label>Modo</label>
+            <select id="modoIngreso">
+              <option value="normal">Pedido normal</option>
+              <option value="primerIngreso">Primer ingreso / inventario inicial</option>
+            </select>
+          </div>
+        </div>
+
+        <span class="badge" id="proveedorActivo">Sin proveedor seleccionado</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="panel">
+        <div class="actions">
+          <button id="btnAgregar" disabled>+ Agregar producto</button>
+          <button id="btnLimpiar" class="danger" disabled>Limpiar productos</button>
+          <button id="btnNuevoPedido" class="btn-secundario" disabled>Nuevo pedido</button>
+          <button id="btnExportar" disabled>Exportar Excel</button>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Descripción</th>
+                <th>U/M<br><small>Cantidad por caja</small></th>
+                <th>Costo</th>
+                <th>Stock objetivo</th>
+                <th id="thCompraInicial">Compra inicial<br><small>o inventario base</small></th>
+                <th>Venta</th>
+                <th>Meses venta</th>
+                <th>Inventario actual</th>
+                <th>Prom. mensual</th>
+                <th>Sugerido</th>
+                <th>Pedido</th>
+                <th>Monto pedido</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tablaProductos">
+              <tr>
+                <td colspan="14" class="empty">Cree o seleccione un proveedor para iniciar.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="historialPanel" class="historial-panel">
+          <div class="historial-header">
+            <span>Pedidos anteriores</span>
+            <button id="btnCerrarHistorial" class="btn-secundario" type="button">Cerrar</button>
+          </div>
+          <div class="historial-body">
+            <div id="historialLista" class="historial-lista"></div>
+            <div id="historialDetalle"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const KEY = "pedidosInternacionales_v2";
+
+    let data;
+
+    try {
+      data = JSON.parse(localStorage.getItem(KEY)) || { proveedores: {} };
+
+      if (!data || typeof data !== "object" || !data.proveedores || typeof data.proveedores !== "object") {
+        data = { proveedores: {} };
+      }
+    } catch (e) {
+      console.error("No se pudo leer la información guardada. Se iniciará una base limpia.", e);
+      data = { proveedores: {} };
+    }
+    let proveedorActual = "";
+
+    const proveedorSelect = document.getElementById("proveedorSelect");
+    const nuevoProveedor = document.getElementById("nuevoProveedor");
+    const preparadoPor = document.getElementById("preparadoPor");
+    const estadoPedido = document.getElementById("estadoPedido");
+    const nombreProveedor = document.getElementById("nombreProveedor");
+    const fechaUltimoPedido = document.getElementById("fechaUltimoPedido");
+    const fechaActual = document.getElementById("fechaActual");
+    const modoIngreso = document.getElementById("modoIngreso");
+    const thCompraInicial = document.getElementById("thCompraInicial");
+    const proveedorActivo = document.getElementById("proveedorActivo");
+    const tablaProductos = document.getElementById("tablaProductos");
+
+    const btnCrear = document.getElementById("btnCrear");
+    const btnGuardar = document.getElementById("btnGuardar");
+    const btnHistorial = document.getElementById("btnHistorial");
+    const btnAgregar = document.getElementById("btnAgregar");
+    const btnLimpiar = document.getElementById("btnLimpiar");
+    const btnNuevoPedido = document.getElementById("btnNuevoPedido");
+    const btnExportar = document.getElementById("btnExportar");
+    const historialPanel = document.getElementById("historialPanel");
+    const historialLista = document.getElementById("historialLista");
+    const historialDetalle = document.getElementById("historialDetalle");
+    const btnCerrarHistorial = document.getElementById("btnCerrarHistorial");
+
+    fechaActual.value = new Date().toISOString().split("T")[0];
+
+    function guardarData() {
+      localStorage.setItem(KEY, JSON.stringify(data));
+    }
+
+    function formato2(valor) {
+      return Number(valor || 0).toFixed(2);
+    }
+
+    function calcularSugerido(stockObjetivo, inventario) {
+      const objetivo = Number(stockObjetivo || 0);
+      const actual = Number(inventario || 0);
+
+      if (objetivo <= 0) {
+        return 0;
+      }
+
+      return Math.max(0, objetivo - actual);
+    }
+
+    function limpiarTexto(valor) {
+      return String(valor || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function cargarProveedores() {
+      proveedorSelect.innerHTML = '<option value="">Seleccione un proveedor</option>';
+
+      Object.keys(data.proveedores).sort().forEach(function(nombre) {
+        const opt = document.createElement("option");
+        opt.value = nombre;
+        opt.textContent = nombre;
+        proveedorSelect.appendChild(opt);
+      });
+    }
+
+    function crearProveedor() {
+      const nombre = nuevoProveedor.value.trim().toUpperCase();
+
+      if (!nombre) {
+        alert("Escriba el nombre del proveedor.");
+        return;
+      }
+
+      if (!data.proveedores[nombre]) {
+        data.proveedores[nombre] = {
+          nombre: nombre,
+          fechaUltimoPedido: "",
+          pedidos: [],
+          productos: []
+        };
+      }
+
+      guardarData();
+      cargarProveedores();
+      proveedorSelect.value = nombre;
+      nuevoProveedor.value = "";
+      seleccionarProveedor(nombre);
+    }
+
+    function seleccionarProveedor(nombre) {
+      proveedorActual = nombre;
+      const activo = Boolean(nombre);
+
+      btnGuardar.disabled = !activo;
+      btnHistorial.disabled = !activo;
+      btnAgregar.disabled = !activo;
+      btnLimpiar.disabled = !activo;
+      btnNuevoPedido.disabled = !activo;
+      btnExportar.disabled = !activo;
+
+      if (!activo) {
+        nombreProveedor.value = "";
+        fechaUltimoPedido.value = "";
+        proveedorActivo.textContent = "Sin proveedor seleccionado";
+        ocultarHistorial();
+        renderTabla([]);
+        return;
+      }
+
+      const p = data.proveedores[nombre];
+
+      nombreProveedor.value = p.nombre;
+      fechaUltimoPedido.value = p.fechaUltimoPedido || "Sin registros";
+      proveedorActivo.textContent = "Proveedor activo: " + p.nombre;
+
+      renderTabla(p.productos);
+    }
+
+    function agregarFila() {
+      if (!proveedorActual) return;
+
+      data.proveedores[proveedorActual].productos.push({
+        codigo: "",
+        descripcion: "",
+        um: 0,
+        costo: 0,
+        ultimaCompra: 0,
+        venta: 0,
+        meses: 1,
+        promedio: 0,
+        stockObjetivo: 0,
+        pedido: 0
+      });
+
+      guardarData();
+      renderTabla(data.proveedores[proveedorActual].productos);
+    }
+
+    function limpiarProductos() {
+      if (!proveedorActual) return;
+
+      if (!confirm("¿Seguro que desea limpiar los productos de este proveedor?")) {
+        return;
+      }
+
+      data.proveedores[proveedorActual].productos = [];
+      guardarData();
+      renderTabla([]);
+    }
+
+    function calcularInventario(item) {
+      const compra = Number(item.ultimaCompra || 0);
+      const venta = Number(item.venta || 0);
+
+      if (modoIngreso.value === "primerIngreso") {
+        return compra;
+      }
+
+      return compra - venta;
+    }
+
+    function actualizarEncabezadoCompra() {
+      if (!thCompraInicial) return;
+
+      if (modoIngreso.value === "primerIngreso") {
+        thCompraInicial.innerHTML = 'Compra inicial<br><small>o inventario base</small>';
+      } else {
+        thCompraInicial.innerHTML = 'Última compra';
+      }
+    }
+
+    function claseInventario(inventario, stockObjetivo) {
+      const objetivo = Number(stockObjetivo || 0);
+
+      if (objetivo <= 0) return "";
+
+      if (inventario <= (objetivo * 0.50)) return "stock-rojo";
+      if (inventario <= (objetivo * 0.80)) return "stock-naranja";
+      return "stock-verde";
+    }
+
+    function renderTabla(productos) {
+      if (!proveedorActual) {
+        tablaProductos.innerHTML = '<tr><td colspan="14" class="empty">Cree o seleccione un proveedor para iniciar.</td></tr>';
+        return;
+      }
+
+      if (productos.length === 0) {
+        tablaProductos.innerHTML = '<tr><td colspan="14" class="empty">Este proveedor no tiene productos. Presione “Agregar producto”.</td></tr>';
+        return;
+      }
+
+      tablaProductos.innerHTML = "";
+
+      productos.forEach(function(item, index) {
+        const inv = calcularInventario(item);
+        const meses = Number(item.meses || 1);
+        const promedio = meses > 0 ? Number(item.venta || 0) / meses : 0;
+        const stockObjetivo = Number(item.stockObjetivo || 0);
+        item.promedio = Number(promedio);
+        const sugerido = calcularSugerido(stockObjetivo, inv);
+        const clase = claseInventario(inv, stockObjetivo);
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML =
+          '<td><input value="' + limpiarTexto(item.codigo) + '" data-index="' + index + '" data-campo="codigo"></td>' +
+          '<td><input value="' + limpiarTexto(item.descripcion) + '" data-index="' + index + '" data-campo="descripcion"></td>' +
+          '<td class="num"><input type="number" step="0.01" value="' + item.um + '" data-index="' + index + '" data-campo="um"></td>' +
+          '<td class="num"><input type="number" step="0.01" value="' + item.costo + '" data-index="' + index + '" data-campo="costo"></td>' +
+          '<td class="num"><input type="number" step="0.01" value="' + stockObjetivo + '" data-index="' + index + '" data-campo="stockObjetivo"></td>' +
+          '<td class="num"><input type="number" step="0.01" value="' + item.ultimaCompra + '" data-index="' + index + '" data-campo="ultimaCompra"></td>' +
+          '<td class="num"><input type="number" step="0.01" value="' + item.venta + '" data-index="' + index + '" data-campo="venta"></td>' +
+          '<td class="num"><input type="number" min="1" value="' + (item.meses || 1) + '" data-index="' + index + '" data-campo="meses"></td>' +
+          '<td><span class="calc ' + clase + '">' + formato2(inv) + '</span></td>' +
+          '<td><span class="calc">' + formato2(promedio) + '</span></td>' +
+          '<td><span class="calc">' + formato2(sugerido) + '</span></td>' +
+          '<td class="num"><input type="number" step="0.01" value="' + item.pedido + '" data-index="' + index + '" data-campo="pedido"></td>' +
+          '<td><span class="calc">' + formato2(Number(item.costo || 0) * Number(item.pedido || 0)) + '</span></td>' +
+          '<td><button class="danger eliminar" data-index="' + index + '">Eliminar</button></td>';
+
+        tablaProductos.appendChild(tr);
+      });
+
+      const totalPedidoActual = productos.reduce(function(acc, item) {
+        return acc + Number(item.pedido || 0);
+      }, 0);
+
+      const totalMontoActual = productos.reduce(function(acc, item) {
+        return acc + (Number(item.costo || 0) * Number(item.pedido || 0));
+      }, 0);
+
+      const trTotal = document.createElement("tr");
+      trTotal.innerHTML =
+        '<td colspan="11" class="empty" style="text-align:right; font-weight:800;">Totales</td>' +
+        '<td><span class="calc">' + formato2(totalPedidoActual) + '</span></td>' +
+        '<td><span class="calc">' + formato2(totalMontoActual) + '</span></td>' +
+        '<td></td>';
+      tablaProductos.appendChild(trTotal);
+    }
+
+    function actualizar(index, campo, valor) {
+      const item = data.proveedores[proveedorActual].productos[index];
+
+      if (["um", "costo", "ultimaCompra", "venta", "meses", "stockObjetivo", "pedido"].includes(campo)) {
+        item[campo] = Number(valor || 0);
+      } else {
+        item[campo] = valor;
+      }
+
+      guardarData();
+      renderTabla(data.proveedores[proveedorActual].productos);
+    }
+
+    function eliminarFila(index) {
+      data.proveedores[proveedorActual].productos.splice(index, 1);
+      guardarData();
+      renderTabla(data.proveedores[proveedorActual].productos);
+    }
+
+    function crearSnapshotPedido() {
+      const p = data.proveedores[proveedorActual];
+      const productos = (p.productos || []).map(function(item) {
+        const inventarioActual = calcularInventario(item);
+        const meses = Number(item.meses || 1);
+        const promedioMensual = meses > 0 ? Number(item.venta || 0) / meses : 0;
+        const stockObjetivo = Number(item.stockObjetivo || 0);
+        const sugerido = calcularSugerido(stockObjetivo, inventarioActual);
+        const pedido = Number(item.pedido || 0);
+        const total = Number(item.costo || 0) * pedido;
+
+        return {
+          codigo: item.codigo || "",
+          descripcion: item.descripcion || "",
+          um: Number(item.um || 0),
+          costo: Number(item.costo || 0),
+          stockObjetivo: stockObjetivo,
+          compraInicial: Number(item.ultimaCompra || 0),
+          venta: Number(item.venta || 0),
+          meses: meses,
+          inventarioActual: inventarioActual,
+          promedioMensual: promedioMensual,
+          sugerido: sugerido,
+          pedido: pedido,
+          total: total
+        };
+      });
+
+      const totalPedido = productos.reduce(function(acc, item) { return acc + Number(item.pedido || 0); }, 0);
+      const totalValor = productos.reduce(function(acc, item) { return acc + Number(item.total || 0); }, 0);
+
+      return {
+        id: Date.now().toString(),
+        fecha: fechaActual.value,
+        guardadoEl: new Date().toLocaleString("es-PA"),
+        preparadoPor: preparadoPor.value,
+        estado: estadoPedido.value,
+        modo: modoIngreso.value,
+        encabezadoCompra: modoIngreso.value === "primerIngreso" ? "Compra inicial / inventario base" : "Última compra",
+        totalPedido: totalPedido,
+        totalValor: totalValor,
+        productos: productos
+      };
+    }
+
+    function firmaPedido(pedido) {
+      return JSON.stringify({
+        fecha: pedido.fecha,
+        preparadoPor: pedido.preparadoPor,
+        estado: pedido.estado,
+        modo: pedido.modo,
+        productos: pedido.productos
+      });
+    }
+
+    function guardarPedido(silencioso) {
+      if (!proveedorActual) return false;
+
+      const p = data.proveedores[proveedorActual];
+
+      if (!p.productos || p.productos.length === 0) {
+        if (!silencioso) alert("No hay productos para guardar.");
+        return false;
+      }
+
+      if (!Array.isArray(p.pedidos)) {
+        p.pedidos = [];
+      }
+
+      const pedido = crearSnapshotPedido();
+      const ultimo = p.pedidos[p.pedidos.length - 1];
+
+      if (ultimo && firmaPedido(ultimo) === firmaPedido(pedido)) {
+        if (!silencioso) alert("Este pedido ya estaba guardado sin cambios.");
+        return true;
+      }
+
+      p.pedidos.push(pedido);
+      p.fechaUltimoPedido = pedido.fecha;
+
+      guardarData();
+      seleccionarProveedor(proveedorActual);
+
+      if (!silencioso) {
+        alert("Pedido guardado correctamente. Ya aparecerá en pedidos anteriores.");
+      }
+
+      return true;
+    }
+
+    function nombreArchivoSeguro(texto) {
+      return String(texto || "pedido")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9_-]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+    }
+
+    function exportarExcel() {
+      if (!proveedorActual) return;
+
+      const p = data.proveedores[proveedorActual];
+      const productos = p.productos || [];
+
+      if (productos.length === 0) {
+        alert("No hay productos para exportar.");
+        return;
+      }
+
+      guardarPedido(true);
+
+      const encabezados = [
+        "Codigo",
+        "Descripcion",
+        "U/M",
+        "Costo",
+        "Stock objetivo",
+        modoIngreso.value === "primerIngreso" ? "Compra inicial / inventario base" : "Última compra",
+        "Venta",
+        "Meses venta",
+        "Inventario actual",
+        "Prom. mensual",
+        "Sugerido",
+        "Pedido",
+        "Monto pedido"
+      ];
+
+      function valorCSV(valor) {
+        const texto = String(valor ?? "");
+        return '"' + texto.replace(/"/g, '""') + '"';
+      }
+
+      const lineas = [];
+
+      lineas.push(["Lubricantes y Quimicos, S. A. - Pedido internacional"].map(valorCSV).join(";"));
+      lineas.push(["Proveedor", p.nombre || proveedorActual].map(valorCSV).join(";"));
+      lineas.push(["Fecha pedido", fechaActual.value || ""].map(valorCSV).join(";"));
+      lineas.push(["Preparado por", preparadoPor.value || ""].map(valorCSV).join(";"));
+      lineas.push(["Estado", estadoPedido.value || ""].map(valorCSV).join(";"));
+      lineas.push("");
+      lineas.push(encabezados.map(valorCSV).join(";"));
+
+      let totalPedido = 0;
+      let totalValor = 0;
+
+      productos.forEach(function(item) {
+        const inv = calcularInventario(item);
+        const meses = Number(item.meses || 1);
+        const promedio = meses > 0 ? Number(item.venta || 0) / meses : 0;
+        const stockObjetivo = Number(item.stockObjetivo || 0);
+        const sugerido = calcularSugerido(stockObjetivo, inv);
+        const pedido = Number(item.pedido || 0);
+        const total = Number(item.costo || 0) * pedido;
+
+        totalPedido += pedido;
+        totalValor += total;
+
+        lineas.push([
+          item.codigo || "",
+          item.descripcion || "",
+          formato2(item.um),
+          formato2(item.costo),
+          formato2(stockObjetivo),
+          formato2(item.ultimaCompra),
+          formato2(item.venta),
+          formato2(meses),
+          formato2(inv),
+          formato2(promedio),
+          formato2(sugerido),
+          formato2(pedido),
+          formato2(total)
+        ].map(valorCSV).join(";"));
+      });
+
+      lineas.push([
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Totales",
+        formato2(totalPedido),
+        formato2(totalValor)
+      ].map(valorCSV).join(";"));
+
+      const contenido = "\ufeff" + lineas.join("\r\n");
+      const blob = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const nombreArchivo = nombreArchivoSeguro(proveedorActual) + "_Pedido_" + (fechaActual.value || new Date().toISOString().split("T")[0]) + ".csv";
+
+      a.href = url;
+      a.download = nombreArchivo;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function ocultarHistorial() {
+      if (historialPanel) historialPanel.style.display = "none";
+      if (historialLista) historialLista.innerHTML = "";
+      if (historialDetalle) historialDetalle.innerHTML = "";
+    }
+
+    function mostrarDetallePedido(indexOriginal) {
+      const pedidos = data.proveedores[proveedorActual].pedidos || [];
+      const pedido = pedidos[indexOriginal];
+
+      if (!pedido) return;
+
+      const productos = pedido.productos || [];
+      const encabezadoCompra = pedido.encabezadoCompra || (pedido.modo === "primerIngreso" ? "Compra inicial / inventario base" : "Última compra");
+
+      let html = '<div class="historial-detalle-title">Pedido del ' + limpiarTexto(pedido.fecha || "Sin fecha") +
+        ' | Estado: ' + limpiarTexto(pedido.estado || "No indicado") +
+        ' | Preparado por: ' + limpiarTexto(pedido.preparadoPor || "No indicado") + '</div>';
+
+      html += '<div class="table-wrap"><table class="historial-table"><thead><tr>' +
+        '<th>Código</th>' +
+        '<th>Descripción</th>' +
+        '<th>U/M</th>' +
+        '<th>Costo</th>' +
+        '<th>Stock objetivo</th>' +
+        '<th>' + limpiarTexto(encabezadoCompra) + '</th>' +
+        '<th>Venta</th>' +
+        '<th>Meses venta</th>' +
+        '<th>Inventario actual</th>' +
+        '<th>Prom. mensual</th>' +
+        '<th>Sugerido</th>' +
+        '<th>Pedido</th>' +
+        '<th>Monto pedido</th>' +
+        '</tr></thead><tbody>';
+
+      if (productos.length === 0) {
+        html += '<tr><td colspan="13" class="empty">Este pedido no tiene productos guardados.</td></tr>';
+      } else {
+        productos.forEach(function(item) {
+          html += '<tr>' +
+            '<td>' + limpiarTexto(item.codigo) + '</td>' +
+            '<td>' + limpiarTexto(item.descripcion) + '</td>' +
+            '<td class="hist-num">' + formato2(item.um) + '</td>' +
+            '<td class="hist-num">' + formato2(item.costo) + '</td>' +
+            '<td class="hist-num">' + formato2(item.stockObjetivo) + '</td>' +
+            '<td class="hist-num">' + formato2(item.compraInicial) + '</td>' +
+            '<td class="hist-num">' + formato2(item.venta) + '</td>' +
+            '<td class="hist-num">' + formato2(item.meses) + '</td>' +
+            '<td class="hist-num">' + formato2(item.inventarioActual) + '</td>' +
+            '<td class="hist-num">' + formato2(item.promedioMensual) + '</td>' +
+            '<td class="hist-num">' + formato2(item.sugerido) + '</td>' +
+            '<td class="hist-num">' + formato2(item.pedido) + '</td>' +
+            '<td class="hist-num">' + formato2(item.total) + '</td>' +
+            '</tr>';
+        });
+      }
+
+      html += '<tr>' +
+        '<td colspan="11" class="empty" style="text-align:right;">Totales</td>' +
+        '<td class="hist-num"><b>' + formato2(pedido.totalPedido || 0) + '</b></td>' +
+        '<td class="hist-num"><b>' + formato2(pedido.totalValor || 0) + '</b></td>' +
+        '</tr>';
+
+      html += '</tbody></table></div>';
+      historialDetalle.innerHTML = html;
+    }
+
+    function consultarAnteriores() {
+      if (!proveedorActual) return;
+
+      const pedidos = data.proveedores[proveedorActual].pedidos || [];
+
+      if (pedidos.length === 0) {
+        alert("Este proveedor aún no tiene pedidos anteriores. Primero presiona Guardar pedido.");
+        return;
+      }
+
+      historialPanel.style.display = "block";
+      historialLista.innerHTML = "";
+      historialDetalle.innerHTML = "";
+
+      const label = document.createElement("label");
+      label.textContent = "Seleccione un pedido guardado";
+
+      const select = document.createElement("select");
+      select.id = "historialSelect";
+      select.innerHTML = '<option value="">Seleccione una fecha / pedido</option>';
+
+      pedidos.map(function(pedido, index) {
+        return { pedido: pedido, index: index };
+      }).reverse().forEach(function(item) {
+        const pedido = item.pedido;
+        const opt = document.createElement("option");
+        opt.value = item.index;
+        opt.textContent = (pedido.fecha || "Sin fecha") +
+          " | " + (pedido.estado || "No indicado") +
+          " | Productos: " + ((pedido.productos || []).length) +
+          " | Pedido: " + formato2(pedido.totalPedido || 0) +
+          " | Monto: $" + formato2(pedido.totalValor || 0);
+        select.appendChild(opt);
+      });
+
+      historialLista.appendChild(label);
+      historialLista.appendChild(select);
+    }
+
+    function nuevoPedido() {
+      if (!proveedorActual) return;
+
+      const p = data.proveedores[proveedorActual];
+      const pedidos = Array.isArray(p.pedidos) ? p.pedidos : [];
+
+      if (pedidos.length === 0) {
+        alert("Primero debes guardar un pedido anterior para usarlo como base del nuevo pedido.");
+        return;
+      }
+
+      // Usar el último pedido guardado que realmente tenga cantidades pedidas.
+      // Esto evita tomar como base un borrador/nuevo pedido guardado con Pedido = 0.
+      let pedidoBase = null;
+      for (let i = pedidos.length - 1; i >= 0; i--) {
+        if (Number(pedidos[i].totalPedido || 0) > 0) {
+          pedidoBase = pedidos[i];
+          break;
+        }
+      }
+
+      if (!pedidoBase) {
+        alert("No encontré un pedido anterior con cantidades pedidas para usarlo como base.");
+        return;
+      }
+
+      const productosBase = pedidoBase.productos || [];
+
+      if (productosBase.length === 0) {
+        alert("El pedido base no tiene productos.");
+        return;
+      }
+
+      if (!confirm("Se creará un nuevo pedido usando como base el último pedido guardado con cantidades. La nueva última compra será inventario restante anterior + pedido anterior; ventas y pedido quedarán en cero. ¿Continuar?")) {
+        return;
+      }
+
+      p.productos = productosBase.map(function(item) {
+        const pedidoAnterior = Number(item.pedido || 0);
+
+        // Prioridad 1: usar el inventario actual ya congelado en el pedido guardado.
+        // Prioridad 2: calcularlo desde compra inicial/última compra menos venta.
+        let inventarioRestante = Number(item.inventarioActual);
+        if (!Number.isFinite(inventarioRestante)) {
+          const compraAnterior = Number(
+            item.compraInicial !== undefined && item.compraInicial !== null
+              ? item.compraInicial
+              : item.ultimaCompra || 0
+          );
+          const ventaAnterior = Number(item.venta || 0);
+          inventarioRestante = compraAnterior - ventaAnterior;
+        }
+
+        inventarioRestante = Math.max(0, inventarioRestante);
+        const nuevaUltimaCompra = inventarioRestante + pedidoAnterior;
+
+        return {
+          codigo: item.codigo || "",
+          descripcion: item.descripcion || "",
+          um: Number(item.um || 0),
+          costo: Number(item.costo || 0),
+          stockObjetivo: Number(item.stockObjetivo || 0),
+          ultimaCompra: nuevaUltimaCompra,
+          venta: 0,
+          meses: 1,
+          promedio: 0,
+          pedido: 0
+        };
+      });
+
+      modoIngreso.value = "normal";
+      estadoPedido.value = "Borrador";
+      fechaActual.value = new Date().toISOString().split("T")[0];
+
+      guardarData();
+      actualizarEncabezadoCompra();
+      ocultarHistorial();
+      seleccionarProveedor(proveedorActual);
+      alert("Nuevo pedido creado. Última compra = inventario restante anterior + pedido anterior; Venta y Pedido quedaron en cero.");
+    }
+
+    proveedorSelect.addEventListener("change", function() {
+      seleccionarProveedor(proveedorSelect.value);
+    });
+
+    btnCrear.addEventListener("click", crearProveedor);
+    btnGuardar.addEventListener("click", guardarPedido);
+    btnHistorial.addEventListener("click", consultarAnteriores);
+    btnAgregar.addEventListener("click", agregarFila);
+    btnLimpiar.addEventListener("click", limpiarProductos);
+    btnNuevoPedido.addEventListener("click", nuevoPedido);
+    btnExportar.addEventListener("click", exportarExcel);
+
+    btnCerrarHistorial.addEventListener("click", ocultarHistorial);
+
+    historialLista.addEventListener("change", function(e) {
+      if (e.target.matches("select#historialSelect")) {
+        if (e.target.value === "") {
+          historialDetalle.innerHTML = "";
+          return;
+        }
+        mostrarDetallePedido(Number(e.target.value));
+      }
+    });
+
+    modoIngreso.addEventListener("change", function() {
+      actualizarEncabezadoCompra();
+
+      if (proveedorActual) {
+        renderTabla(data.proveedores[proveedorActual].productos);
+      }
+    });
+
+
+    tablaProductos.addEventListener("change", function(e) {
+      if (e.target.matches("input[data-index]")) {
+        const index = Number(e.target.dataset.index);
+        const campo = e.target.dataset.campo;
+        actualizar(index, campo, e.target.value);
+      }
+    });
+
+    tablaProductos.addEventListener("click", function(e) {
+      if (e.target.matches(".eliminar")) {
+        const index = Number(e.target.dataset.index);
+        eliminarFila(index);
+      }
+    });
+
+    actualizarEncabezadoCompra();
+    cargarProveedores();
+  </script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function() {
+        navigator.serviceWorker.register("service-worker.js").catch(function(error) {
+          console.warn("No se pudo registrar el service worker:", error);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
