@@ -1,0 +1,11 @@
+ISO APP v1.2 — UX, historial y persistencia
+
+- Todos los botones operativos se mantienen en una sola fila compacta.
+- El modo de ingreso queda guardado por proveedor y no cambia al reiniciar.
+- "Nuevo pedido" reinicia el modo a Pedido normal, como se solicitó.
+- Pedidos anteriores reemplazan temporalmente el área de captura en la misma pantalla.
+- Al abrir el historial se muestra automáticamente el pedido más reciente.
+- Botón "Regresar al pedido" vuelve exactamente al área de trabajo.
+- Los pedidos guardados pueden eliminarse con contraseña administrativa.
+- Los pedidos eliminados pasan a la papelera y pueden restaurarse.
+- Se mantiene la clave localStorage pedidosInternacionales_v2 y la sincronización Firebase.

@@ -1,4 +1,4 @@
-const CACHE_NAME = "iso-app-v1.3-ux-seguridad";
+const CACHE_NAME = "iso-app-v1.4-ux-historial";
 const ASSETS = [
   "./",
   "./index.html",

@@ -149,6 +149,37 @@
       margin-top: 4px;
     }
 
+    .toolbar-unica {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 5px;
+      scrollbar-width: thin;
+    }
+
+    .toolbar-unica button {
+      flex: 0 1 auto;
+      white-space: nowrap;
+      padding: 7px 9px;
+      font-size: 11px;
+      border-radius: 9px;
+    }
+
+    .historial-header-acciones {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .historial-header-acciones button {
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+
+
     button {
       border: 0;
       background: var(--azul);
@@ -487,7 +518,7 @@
         <div class="actions">
           <button id="btnCrear">+ Crear proveedor</button>
           <button id="btnGuardar" disabled>Guardar pedido</button>
-          <button id="btnHistorial" disabled>Consultar pedidos anteriores</button>
+          <button id="btnHistorial" disabled>Ver pedidos anteriores</button>
         </div>
 
         <div class="separator"></div>
@@ -522,26 +553,25 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="areaTrabajoCard">
       <div class="panel">
-        <div class="actions">
-          <button id="btnAgregar" disabled>+ Agregar producto</button>
-          <button id="btnLimpiar" class="danger" disabled>Limpiar productos</button>
-          <button id="btnNuevoPedido" class="btn-secundario" disabled>Nuevo pedido</button>
-          <button id="btnExportar" disabled>Exportar Excel</button>
-          <button id="btnEliminarProveedor" class="danger" disabled>Eliminar proveedor</button>
-        </div>
-        <div class="actions toolbar-seguridad">
-          <button id="btnPapelera" class="btn-secundario">Papelera</button>
-          <button id="btnDeshacer" class="btn-secundario" disabled>↩ Deshacer última eliminación</button>
-          <button id="btnRespaldo" class="btn-alerta">Crear respaldo</button>
-          <button id="btnRestaurar" class="btn-alerta">Restaurar respaldo</button>
-          <input id="archivoRespaldo" type="file" accept="application/json,.json" hidden>
-        </div>
+        <div id="pedidoVista">
+          <div class="actions toolbar-unica">
+            <button id="btnAgregar" disabled>+ Agregar producto</button>
+            <button id="btnLimpiar" class="danger" disabled>Limpiar productos</button>
+            <button id="btnNuevoPedido" class="btn-secundario" disabled>Nuevo pedido</button>
+            <button id="btnExportar" disabled>Exportar Excel</button>
+            <button id="btnEliminarProveedor" class="danger" disabled>Eliminar proveedor</button>
+            <button id="btnPapelera" class="btn-secundario">Papelera</button>
+            <button id="btnDeshacer" class="btn-secundario" disabled>↩ Deshacer</button>
+            <button id="btnRespaldo" class="btn-alerta">Crear respaldo</button>
+            <button id="btnRestaurar" class="btn-alerta">Restaurar respaldo</button>
+            <input id="archivoRespaldo" type="file" accept="application/json,.json" hidden>
+          </div>
 
-        <div class="separator"></div>
+          <div class="separator"></div>
 
-        <div class="table-wrap">
+          <div class="table-wrap">
           <table>
             <thead>
               <tr>
@@ -567,12 +597,16 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
 
         <div id="historialPanel" class="historial-panel">
           <div class="historial-header">
             <span>Pedidos anteriores</span>
-            <button id="btnCerrarHistorial" class="btn-secundario" type="button">Cerrar</button>
+            <div class="historial-header-acciones">
+              <button id="btnEliminarPedido" class="danger" type="button" disabled>Eliminar pedido guardado</button>
+              <button id="btnCerrarHistorial" class="btn-secundario" type="button">← Regresar al pedido</button>
+            </div>
           </div>
           <div class="historial-body">
             <div id="historialLista" class="historial-lista"></div>
@@ -650,10 +684,14 @@
     const btnLimpiar = document.getElementById("btnLimpiar");
     const btnNuevoPedido = document.getElementById("btnNuevoPedido");
     const btnExportar = document.getElementById("btnExportar");
+    const pedidoVista = document.getElementById("pedidoVista");
+    const areaTrabajoCard = document.getElementById("areaTrabajoCard");
     const historialPanel = document.getElementById("historialPanel");
     const historialLista = document.getElementById("historialLista");
     const historialDetalle = document.getElementById("historialDetalle");
     const btnCerrarHistorial = document.getElementById("btnCerrarHistorial");
+    const btnEliminarPedido = document.getElementById("btnEliminarPedido");
+    let pedidoHistorialSeleccionado = null;
     const btnEliminarProveedor = document.getElementById("btnEliminarProveedor");
     const btnPapelera = document.getElementById("btnPapelera");
     const btnDeshacer = document.getElementById("btnDeshacer");
@@ -801,6 +839,15 @@
           return;
         }
         data.proveedores[registro.proveedor] = registro.contenido.proveedor;
+      } else if (registro.tipo === "pedido") {
+        if (!data.proveedores[registro.proveedor]) {
+          alert("El proveedor ya no existe. Restaure primero el proveedor.");
+          return;
+        }
+        const pedidos = data.proveedores[registro.proveedor].pedidos || (data.proveedores[registro.proveedor].pedidos = []);
+        const posicion = Math.min(Number(registro.contenido.indice ?? pedidos.length), pedidos.length);
+        pedidos.splice(posicion, 0, registro.contenido.pedido);
+        data.proveedores[registro.proveedor].fechaUltimoPedido = pedidos.length ? (pedidos[pedidos.length - 1].fecha || "") : "";
       }
       data.papelera = data.papelera.filter(function(x) { return x.id !== registro.id; });
       guardarData();
@@ -975,7 +1022,8 @@
           nombre: nombre,
           fechaUltimoPedido: "",
           pedidos: [],
-          productos: []
+          productos: [],
+          modoIngreso: "normal"
         };
       }
 
@@ -1013,6 +1061,11 @@
       fechaUltimoPedido.value = p.fechaUltimoPedido || "Sin registros";
       proveedorActivo.textContent = "Proveedor activo: " + p.nombre;
 
+      const ultimoPedido = Array.isArray(p.pedidos) && p.pedidos.length ? p.pedidos[p.pedidos.length - 1] : null;
+      modoIngreso.value = p.modoIngreso || (ultimoPedido && ultimoPedido.modo) || "normal";
+      p.modoIngreso = modoIngreso.value;
+      actualizarEncabezadoCompra();
+      ocultarHistorial();
       renderTabla(p.productos);
     }
 
@@ -1422,7 +1475,10 @@
     }
 
     function ocultarHistorial() {
+      pedidoHistorialSeleccionado = null;
+      if (btnEliminarPedido) btnEliminarPedido.disabled = true;
       if (historialPanel) historialPanel.style.display = "none";
+      if (pedidoVista) pedidoVista.style.display = "block";
       if (historialLista) historialLista.innerHTML = "";
       if (historialDetalle) historialDetalle.innerHTML = "";
     }
@@ -1432,6 +1488,8 @@
       const pedido = pedidos[indexOriginal];
 
       if (!pedido) return;
+      pedidoHistorialSeleccionado = indexOriginal;
+      if (btnEliminarPedido) btnEliminarPedido.disabled = false;
 
       const productos = pedido.productos || [];
       const encabezadoCompra = pedido.encabezadoCompra || (pedido.modo === "primerIngreso" ? "Compra inicial / inventario base" : "Última compra");
@@ -1498,16 +1556,18 @@
         return;
       }
 
+      pedidoVista.style.display = "none";
       historialPanel.style.display = "block";
       historialLista.innerHTML = "";
       historialDetalle.innerHTML = "";
+      pedidoHistorialSeleccionado = null;
+      btnEliminarPedido.disabled = true;
 
       const label = document.createElement("label");
       label.textContent = "Seleccione un pedido guardado";
 
       const select = document.createElement("select");
       select.id = "historialSelect";
-      select.innerHTML = '<option value="">Seleccione una fecha / pedido</option>';
 
       pedidos.map(function(pedido, index) {
         return { pedido: pedido, index: index };
@@ -1525,6 +1585,37 @@
 
       historialLista.appendChild(label);
       historialLista.appendChild(select);
+
+      const ultimoIndice = pedidos.length - 1;
+      select.value = String(ultimoIndice);
+      mostrarDetallePedido(ultimoIndice);
+      if (areaTrabajoCard) areaTrabajoCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function eliminarPedidoGuardado() {
+      if (!proveedorActual || pedidoHistorialSeleccionado === null) return;
+      const p = data.proveedores[proveedorActual];
+      const pedidos = Array.isArray(p.pedidos) ? p.pedidos : [];
+      const pedido = pedidos[pedidoHistorialSeleccionado];
+      if (!pedido) return;
+
+      pedirPassword("Se moverá a la papelera el pedido guardado del " + (pedido.fecha || "sin fecha") + ".", function() {
+        registrarEnPapelera("pedido", proveedorActual, {
+          pedido: pedido,
+          indice: pedidoHistorialSeleccionado
+        }, "Pedido guardado del " + (pedido.fecha || "sin fecha"));
+        pedidos.splice(pedidoHistorialSeleccionado, 1);
+        p.fechaUltimoPedido = pedidos.length ? (pedidos[pedidos.length - 1].fecha || "") : "";
+        guardarData();
+        fechaUltimoPedido.value = p.fechaUltimoPedido || "Sin registros";
+
+        if (pedidos.length === 0) {
+          ocultarHistorial();
+          alert("El pedido fue movido a la papelera.");
+          return;
+        }
+        consultarAnteriores();
+      });
     }
 
     function nuevoPedido() {
@@ -1598,6 +1689,7 @@
       });
 
       modoIngreso.value = "normal";
+      p.modoIngreso = "normal";
       estadoPedido.value = "Borrador";
       fechaActual.value = new Date().toISOString().split("T")[0];
 
@@ -1648,10 +1740,13 @@
     });
 
     btnCerrarHistorial.addEventListener("click", ocultarHistorial);
+    btnEliminarPedido.addEventListener("click", eliminarPedidoGuardado);
 
     historialLista.addEventListener("change", function(e) {
       if (e.target.matches("select#historialSelect")) {
         if (e.target.value === "") {
+          pedidoHistorialSeleccionado = null;
+          btnEliminarPedido.disabled = true;
           historialDetalle.innerHTML = "";
           return;
         }
@@ -1663,6 +1758,8 @@
       actualizarEncabezadoCompra();
 
       if (proveedorActual) {
+        data.proveedores[proveedorActual].modoIngreso = modoIngreso.value;
+        guardarData();
         renderTabla(data.proveedores[proveedorActual].productos);
       }
     });
