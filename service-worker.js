@@ -1,4 +1,4 @@
-const CACHE_NAME = "iso-app-v1.2";
+const CACHE_NAME = "iso-app-v1.3-ux-seguridad";
 const ASSETS = [
   "./",
   "./index.html",

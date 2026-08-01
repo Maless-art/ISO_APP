@@ -343,6 +343,75 @@
       background: #334155;
     }
 
+
+    /* UX v1.1: inputs digitables, sin selectores nativos */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"] { -moz-appearance: textfield; }
+
+    td input[data-campo] {
+      min-width: 72px;
+    }
+
+    td input[data-campo]:focus {
+      background: #fffef2;
+    }
+
+    .toolbar-seguridad {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--gris-borde);
+    }
+
+    .btn-alerta {
+      background: #8a5a00;
+      box-shadow: 0 4px 0 #5c3b00;
+    }
+
+    .btn-alerta:hover { background: #a56b00; }
+
+    .modal-seguridad {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(15, 23, 42, .62);
+      z-index: 9999;
+    }
+
+    .modal-seguridad.visible { display: flex; }
+
+    .modal-caja {
+      width: min(560px, 100%);
+      max-height: 86vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.28);
+      padding: 18px;
+    }
+
+    .modal-caja h3 { margin: 0 0 8px; color: var(--azul); }
+    .modal-caja p { margin: 0 0 12px; line-height: 1.45; }
+    .modal-acciones { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
+
+    .papelera-item {
+      border: 1px solid var(--gris-borde);
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 8px;
+      background: #f8fafc;
+    }
+
+    .papelera-item strong { display: block; margin-bottom: 4px; }
+    .papelera-meta { font-size: 12px; color: #64748b; margin-bottom: 8px; }
+
     @media(max-width: 900px) {
       .topbar {
         display: block;
@@ -460,6 +529,14 @@
           <button id="btnLimpiar" class="danger" disabled>Limpiar productos</button>
           <button id="btnNuevoPedido" class="btn-secundario" disabled>Nuevo pedido</button>
           <button id="btnExportar" disabled>Exportar Excel</button>
+          <button id="btnEliminarProveedor" class="danger" disabled>Eliminar proveedor</button>
+        </div>
+        <div class="actions toolbar-seguridad">
+          <button id="btnPapelera" class="btn-secundario">Papelera</button>
+          <button id="btnDeshacer" class="btn-secundario" disabled>↩ Deshacer última eliminación</button>
+          <button id="btnRespaldo" class="btn-alerta">Crear respaldo</button>
+          <button id="btnRestaurar" class="btn-alerta">Restaurar respaldo</button>
+          <input id="archivoRespaldo" type="file" accept="application/json,.json" hidden>
         </div>
 
         <div class="separator"></div>
@@ -507,6 +584,14 @@
 
   </div>
 
+  <div id="modalSeguridad" class="modal-seguridad" aria-hidden="true">
+    <div class="modal-caja" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+      <h3 id="modalTitulo">Confirmación</h3>
+      <div id="modalContenido"></div>
+      <div class="modal-acciones" id="modalAcciones"></div>
+    </div>
+  </div>
+
   <!-- Firebase SDK compat para app HTML sin build/npm -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
@@ -514,6 +599,8 @@
 
   <script>
     const KEY = "pedidosInternacionales_v2";
+    const ADMIN_PASSWORD = "ISO2026"; // Protección contra eliminaciones accidentales.
+    const PAPELERA_MAX = 100;
 
     let data;
 
@@ -527,6 +614,8 @@
       console.error("No se pudo leer la información guardada. Se iniciará una base limpia.", e);
       data = { proveedores: {} };
     }
+
+    if (!Array.isArray(data.papelera)) data.papelera = [];
 
     const firebaseConfig = {
       apiKey: "AIzaSyBRAVJxHbd2keGBjMuAzpW9rTeRCYPI",
@@ -565,6 +654,18 @@
     const historialLista = document.getElementById("historialLista");
     const historialDetalle = document.getElementById("historialDetalle");
     const btnCerrarHistorial = document.getElementById("btnCerrarHistorial");
+    const btnEliminarProveedor = document.getElementById("btnEliminarProveedor");
+    const btnPapelera = document.getElementById("btnPapelera");
+    const btnDeshacer = document.getElementById("btnDeshacer");
+    const btnRespaldo = document.getElementById("btnRespaldo");
+    const btnRestaurar = document.getElementById("btnRestaurar");
+    const archivoRespaldo = document.getElementById("archivoRespaldo");
+    const modalSeguridad = document.getElementById("modalSeguridad");
+    const modalTitulo = document.getElementById("modalTitulo");
+    const modalContenido = document.getElementById("modalContenido");
+    const modalAcciones = document.getElementById("modalAcciones");
+    let ultimaEliminacion = null;
+    let temporizadorGuardado = null;
 
     fechaActual.value = new Date().toISOString().split("T")[0];
 
@@ -579,6 +680,197 @@
           console.error("No se pudo guardar en Firebase:", error);
         });
       }
+    }
+
+    function guardarDataLocal() {
+      localStorage.setItem(KEY, JSON.stringify(data));
+    }
+
+    function guardarDataDebounced() {
+      guardarDataLocal();
+      clearTimeout(temporizadorGuardado);
+      temporizadorGuardado = setTimeout(function() {
+        if (firebaseActivo && db && !sincronizandoDesdeFirebase) {
+          db.collection("iso_app").doc("estado_general").set({
+            data: data,
+            actualizadoEl: new Date().toISOString()
+          }).catch(function(error) {
+            console.error("No se pudo guardar en Firebase:", error);
+          });
+        }
+      }, 350);
+    }
+
+    function valorInput(item, campo) {
+      const valor = item[campo];
+      return Number(valor || 0) === 0 ? "" : limpiarTexto(valor);
+    }
+
+    function placeholderCampo(campo) {
+      return campo === "costo" ? "0.00" : "0";
+    }
+
+    function abrirModal(titulo, contenidoHtml, botones) {
+      modalTitulo.textContent = titulo;
+      modalContenido.innerHTML = contenidoHtml;
+      modalAcciones.innerHTML = "";
+      botones.forEach(function(config) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = config.texto;
+        if (config.clase) b.className = config.clase;
+        b.addEventListener("click", config.accion);
+        modalAcciones.appendChild(b);
+      });
+      modalSeguridad.classList.add("visible");
+      modalSeguridad.setAttribute("aria-hidden", "false");
+      setTimeout(function() {
+        const foco = modalContenido.querySelector("input,button,select") || modalAcciones.querySelector("button");
+        if (foco) foco.focus();
+      }, 0);
+    }
+
+    function cerrarModal() {
+      modalSeguridad.classList.remove("visible");
+      modalSeguridad.setAttribute("aria-hidden", "true");
+      modalContenido.innerHTML = "";
+      modalAcciones.innerHTML = "";
+    }
+
+    function pedirPassword(mensaje, alConfirmar) {
+      abrirModal("Autorización requerida",
+        '<p>' + limpiarTexto(mensaje) + '</p><label for="claveAdmin">Contraseña administrativa</label><input id="claveAdmin" type="password" autocomplete="off" placeholder="Contraseña">',
+        [
+          { texto: "Cancelar", clase: "btn-secundario", accion: cerrarModal },
+          { texto: "Autorizar", clase: "danger", accion: function() {
+              const clave = document.getElementById("claveAdmin").value;
+              if (clave !== ADMIN_PASSWORD) {
+                alert("Contraseña incorrecta.");
+                document.getElementById("claveAdmin").focus();
+                return;
+              }
+              cerrarModal();
+              alConfirmar();
+            }
+          }
+        ]
+      );
+      const clave = document.getElementById("claveAdmin");
+      clave.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") modalAcciones.querySelector("button.danger").click();
+        if (e.key === "Escape") cerrarModal();
+      });
+    }
+
+    function registrarEnPapelera(tipo, proveedor, contenido, descripcion) {
+      if (!Array.isArray(data.papelera)) data.papelera = [];
+      const registro = {
+        id: Date.now().toString() + Math.random().toString(16).slice(2),
+        tipo: tipo,
+        proveedor: proveedor,
+        descripcion: descripcion || "",
+        eliminadoEl: new Date().toISOString(),
+        contenido: JSON.parse(JSON.stringify(contenido))
+      };
+      data.papelera.unshift(registro);
+      data.papelera = data.papelera.slice(0, PAPELERA_MAX);
+      ultimaEliminacion = registro.id;
+      btnDeshacer.disabled = false;
+      return registro;
+    }
+
+    function restaurarRegistro(registro) {
+      if (!registro) return;
+      if (registro.tipo === "producto") {
+        if (!data.proveedores[registro.proveedor]) {
+          alert("El proveedor ya no existe. Restaure primero el proveedor.");
+          return;
+        }
+        const lista = data.proveedores[registro.proveedor].productos || (data.proveedores[registro.proveedor].productos = []);
+        const posicion = Math.min(Number(registro.contenido.indice || lista.length), lista.length);
+        lista.splice(posicion, 0, registro.contenido.producto);
+      } else if (registro.tipo === "limpieza") {
+        if (!data.proveedores[registro.proveedor]) {
+          alert("El proveedor ya no existe. Restaure primero el proveedor.");
+          return;
+        }
+        data.proveedores[registro.proveedor].productos = registro.contenido.productos || [];
+      } else if (registro.tipo === "proveedor") {
+        if (data.proveedores[registro.proveedor]) {
+          alert("Ya existe un proveedor con ese nombre.");
+          return;
+        }
+        data.proveedores[registro.proveedor] = registro.contenido.proveedor;
+      }
+      data.papelera = data.papelera.filter(function(x) { return x.id !== registro.id; });
+      guardarData();
+      cargarProveedores();
+      if (data.proveedores[registro.proveedor]) {
+        proveedorSelect.value = registro.proveedor;
+        seleccionarProveedor(registro.proveedor);
+      }
+      btnDeshacer.disabled = true;
+      ultimaEliminacion = null;
+    }
+
+    function mostrarPapelera() {
+      const registros = Array.isArray(data.papelera) ? data.papelera : [];
+      let html = registros.length ? "" : '<p class="empty">La papelera está vacía.</p>';
+      registros.forEach(function(r) {
+        html += '<div class="papelera-item" data-id="' + r.id + '">' +
+          '<strong>' + limpiarTexto(r.descripcion || r.tipo) + '</strong>' +
+          '<div class="papelera-meta">Proveedor: ' + limpiarTexto(r.proveedor || "-") + ' · ' + new Date(r.eliminadoEl).toLocaleString("es-PA") + '</div>' +
+          '<div class="actions"><button type="button" class="restaurar-papelera" data-id="' + r.id + '">Restaurar</button>' +
+          '<button type="button" class="danger borrar-definitivo" data-id="' + r.id + '">Eliminar definitivamente</button></div></div>';
+      });
+      abrirModal("Papelera", html, [{ texto: "Cerrar", clase: "btn-secundario", accion: cerrarModal }]);
+    }
+
+    function crearRespaldo() {
+      const respaldo = {
+        app: "ISO - International Sales Order",
+        version: "1.1",
+        creadoEl: new Date().toISOString(),
+        key: KEY,
+        data: data
+      };
+      const blob = new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json;charset=utf-8" });
+      const enlace = document.createElement("a");
+      enlace.href = URL.createObjectURL(blob);
+      enlace.download = "ISO_Respaldo_" + new Date().toISOString().replace(/[:.]/g, "-") + ".json";
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      URL.revokeObjectURL(enlace.href);
+    }
+
+    function restaurarRespaldoArchivo(archivo) {
+      if (!archivo) return;
+      const lector = new FileReader();
+      lector.onload = function() {
+        try {
+          const contenido = JSON.parse(lector.result);
+          const datos = contenido && contenido.data ? contenido.data : contenido;
+          if (!datos || typeof datos !== "object" || !datos.proveedores || typeof datos.proveedores !== "object") {
+            throw new Error("Formato de respaldo inválido");
+          }
+          pedirPassword("Se reemplazará la base actual por el respaldo seleccionado. Antes se descargará una copia automática de seguridad.", function() {
+            crearRespaldo();
+            data = datos;
+            if (!Array.isArray(data.papelera)) data.papelera = [];
+            guardarData();
+            proveedorActual = "";
+            cargarProveedores();
+            seleccionarProveedor("");
+            alert("Respaldo restaurado correctamente y sincronizado con Firebase.");
+          });
+        } catch (error) {
+          alert("No se pudo restaurar el archivo: " + error.message);
+        } finally {
+          archivoRespaldo.value = "";
+        }
+      };
+      lector.readAsText(archivo);
     }
 
     function iniciarFirebase() {
@@ -602,6 +894,7 @@
             if (!data || typeof data !== "object" || !data.proveedores || typeof data.proveedores !== "object") {
               data = { proveedores: {} };
             }
+            if (!Array.isArray(data.papelera)) data.papelera = [];
 
             localStorage.setItem(KEY, JSON.stringify(data));
             cargarProveedores();
@@ -631,6 +924,12 @@
 
     function formato2(valor) {
       return Number(valor || 0).toFixed(2);
+    }
+
+    function formatoCantidad(valor) {
+      const numero = Number(valor || 0);
+      if (!numero) return "0";
+      return numero.toLocaleString("en-US", { maximumFractionDigits: 2, useGrouping: false });
     }
 
     function calcularSugerido(stockObjetivo, inventario) {
@@ -697,6 +996,7 @@
       btnLimpiar.disabled = !activo;
       btnNuevoPedido.disabled = !activo;
       btnExportar.disabled = !activo;
+      btnEliminarProveedor.disabled = !activo;
 
       if (!activo) {
         nombreProveedor.value = "";
@@ -726,7 +1026,7 @@
         costo: 0,
         ultimaCompra: 0,
         venta: 0,
-        meses: 1,
+        meses: 0,
         promedio: 0,
         stockObjetivo: 0,
         pedido: 0
@@ -734,18 +1034,34 @@
 
       guardarData();
       renderTabla(data.proveedores[proveedorActual].productos);
+      const nuevo = tablaProductos.querySelector('input[data-index="' + (data.proveedores[proveedorActual].productos.length - 1) + '"][data-campo="codigo"]');
+      if (nuevo) nuevo.focus();
     }
 
     function limpiarProductos() {
       if (!proveedorActual) return;
+      const productos = data.proveedores[proveedorActual].productos || [];
+      if (!productos.length) return;
+      pedirPassword("Se moverán todos los productos de " + proveedorActual + " a la papelera.", function() {
+        registrarEnPapelera("limpieza", proveedorActual, { productos: JSON.parse(JSON.stringify(productos)) }, "Productos limpiados (" + productos.length + ")");
+        data.proveedores[proveedorActual].productos = [];
+        guardarData();
+        renderTabla([]);
+      });
+    }
 
-      if (!confirm("¿Seguro que desea limpiar los productos de este proveedor?")) {
-        return;
-      }
-
-      data.proveedores[proveedorActual].productos = [];
-      guardarData();
-      renderTabla([]);
+    function eliminarProveedorActual() {
+      if (!proveedorActual || !data.proveedores[proveedorActual]) return;
+      const nombre = proveedorActual;
+      pedirPassword("Se moverá el proveedor " + nombre + " completo a la papelera.", function() {
+        registrarEnPapelera("proveedor", nombre, { proveedor: JSON.parse(JSON.stringify(data.proveedores[nombre])) }, "Proveedor eliminado");
+        delete data.proveedores[nombre];
+        proveedorActual = "";
+        guardarData();
+        cargarProveedores();
+        proveedorSelect.value = "";
+        seleccionarProveedor("");
+      });
     }
 
     function calcularInventario(item) {
@@ -802,20 +1118,21 @@
         const clase = claseInventario(inv, stockObjetivo);
 
         const tr = document.createElement("tr");
+        tr.dataset.fila = index;
 
         tr.innerHTML =
           '<td><input value="' + limpiarTexto(item.codigo) + '" data-index="' + index + '" data-campo="codigo"></td>' +
           '<td><input value="' + limpiarTexto(item.descripcion) + '" data-index="' + index + '" data-campo="descripcion"></td>' +
-          '<td class="num"><input type="number" step="0.01" value="' + item.um + '" data-index="' + index + '" data-campo="um"></td>' +
-          '<td class="num"><input type="number" step="0.01" value="' + item.costo + '" data-index="' + index + '" data-campo="costo"></td>' +
-          '<td class="num"><input type="number" step="0.01" value="' + stockObjetivo + '" data-index="' + index + '" data-campo="stockObjetivo"></td>' +
-          '<td class="num"><input type="number" step="0.01" value="' + item.ultimaCompra + '" data-index="' + index + '" data-campo="ultimaCompra"></td>' +
-          '<td class="num"><input type="number" step="0.01" value="' + item.venta + '" data-index="' + index + '" data-campo="venta"></td>' +
-          '<td class="num"><input type="number" min="1" value="' + (item.meses || 1) + '" data-index="' + index + '" data-campo="meses"></td>' +
-          '<td><span class="calc ' + clase + '">' + formato2(inv) + '</span></td>' +
-          '<td><span class="calc">' + formato2(promedio) + '</span></td>' +
-          '<td><span class="calc">' + formato2(sugerido) + '</span></td>' +
-          '<td class="num"><input type="number" step="0.01" value="' + item.pedido + '" data-index="' + index + '" data-campo="pedido"></td>' +
+          '<td class="num"><input type="text" inputmode="decimal" placeholder="0" value="' + valorInput(item, "um") + '" data-index="' + index + '" data-campo="um"></td>' +
+          '<td class="num"><input type="text" inputmode="decimal" placeholder="0.00" value="' + valorInput(item, "costo") + '" data-index="' + index + '" data-campo="costo"></td>' +
+          '<td class="num"><input type="text" inputmode="decimal" placeholder="0" value="' + (stockObjetivo === 0 ? "" : limpiarTexto(stockObjetivo)) + '" data-index="' + index + '" data-campo="stockObjetivo"></td>' +
+          '<td class="num"><input type="text" inputmode="decimal" placeholder="0" value="' + valorInput(item, "ultimaCompra") + '" data-index="' + index + '" data-campo="ultimaCompra"></td>' +
+          '<td class="num"><input type="text" inputmode="decimal" placeholder="0" value="' + valorInput(item, "venta") + '" data-index="' + index + '" data-campo="venta"></td>' +
+          '<td class="num"><input type="text" inputmode="numeric" placeholder="0" value="' + valorInput(item, "meses") + '" data-index="' + index + '" data-campo="meses"></td>' +
+          '<td><span class="calc ' + clase + '">' + formatoCantidad(inv) + '</span></td>' +
+          '<td><span class="calc">' + formatoCantidad(promedio) + '</span></td>' +
+          '<td><span class="calc">' + formatoCantidad(sugerido) + '</span></td>' +
+          '<td class="num"><input type="text" inputmode="decimal" placeholder="0" value="' + valorInput(item, "pedido") + '" data-index="' + index + '" data-campo="pedido"></td>' +
           '<td><span class="calc">' + formato2(Number(item.costo || 0) * Number(item.pedido || 0)) + '</span></td>' +
           '<td><button class="danger eliminar" data-index="' + index + '">Eliminar</button></td>';
 
@@ -833,29 +1150,71 @@
       const trTotal = document.createElement("tr");
       trTotal.innerHTML =
         '<td colspan="11" class="empty" style="text-align:right; font-weight:800;">Totales</td>' +
-        '<td><span class="calc">' + formato2(totalPedidoActual) + '</span></td>' +
-        '<td><span class="calc">' + formato2(totalMontoActual) + '</span></td>' +
+        '<td><span class="calc" id="totalPedidoActual">' + formatoCantidad(totalPedidoActual) + '</span></td>' +
+        '<td><span class="calc" id="totalMontoActual">' + formato2(totalMontoActual) + '</span></td>' +
         '<td></td>';
       tablaProductos.appendChild(trTotal);
     }
 
+    function normalizarNumero(valor) {
+      const limpio = String(valor || "").replace(",", ".").replace(/[^0-9.-]/g, "");
+      const numero = Number(limpio);
+      return Number.isFinite(numero) ? numero : 0;
+    }
+
     function actualizar(index, campo, valor) {
       const item = data.proveedores[proveedorActual].productos[index];
-
+      if (!item) return;
       if (["um", "costo", "ultimaCompra", "venta", "meses", "stockObjetivo", "pedido"].includes(campo)) {
-        item[campo] = Number(valor || 0);
+        item[campo] = normalizarNumero(valor);
       } else {
         item[campo] = valor;
       }
+      guardarDataDebounced();
+      actualizarCalculosFila(index);
+      actualizarTotales();
+    }
 
-      guardarData();
-      renderTabla(data.proveedores[proveedorActual].productos);
+    function actualizarCalculosFila(index) {
+      const item = data.proveedores[proveedorActual].productos[index];
+      const fila = tablaProductos.querySelector('tr[data-fila="' + index + '"]');
+      if (!item || !fila) return;
+      const inv = calcularInventario(item);
+      const meses = Number(item.meses || 0);
+      const promedio = meses > 0 ? Number(item.venta || 0) / meses : 0;
+      const stockObjetivo = Number(item.stockObjetivo || 0);
+      const sugerido = calcularSugerido(stockObjetivo, inv);
+      item.promedio = promedio;
+      const celdas = fila.querySelectorAll("span.calc");
+      if (celdas.length >= 4) {
+        celdas[0].textContent = formatoCantidad(inv);
+        celdas[0].className = "calc " + claseInventario(inv, stockObjetivo);
+        celdas[1].textContent = formatoCantidad(promedio);
+        celdas[2].textContent = formatoCantidad(sugerido);
+        celdas[3].textContent = formato2(Number(item.costo || 0) * Number(item.pedido || 0));
+      }
+    }
+
+    function actualizarTotales() {
+      const productos = data.proveedores[proveedorActual] ? data.proveedores[proveedorActual].productos || [] : [];
+      const totalPedido = productos.reduce(function(acc, item) { return acc + Number(item.pedido || 0); }, 0);
+      const totalMonto = productos.reduce(function(acc, item) { return acc + Number(item.costo || 0) * Number(item.pedido || 0); }, 0);
+      const pedidoEl = document.getElementById("totalPedidoActual");
+      const montoEl = document.getElementById("totalMontoActual");
+      if (pedidoEl) pedidoEl.textContent = formatoCantidad(totalPedido);
+      if (montoEl) montoEl.textContent = formato2(totalMonto);
     }
 
     function eliminarFila(index) {
-      data.proveedores[proveedorActual].productos.splice(index, 1);
-      guardarData();
-      renderTabla(data.proveedores[proveedorActual].productos);
+      const productos = data.proveedores[proveedorActual].productos;
+      const producto = productos[index];
+      if (!producto) return;
+      pedirPassword("Se moverá este producto a la papelera: " + (producto.codigo || producto.descripcion || "Sin nombre"), function() {
+        registrarEnPapelera("producto", proveedorActual, { indice: index, producto: JSON.parse(JSON.stringify(producto)) }, "Producto: " + (producto.codigo || producto.descripcion || "Sin nombre"));
+        productos.splice(index, 1);
+        guardarData();
+        renderTabla(productos);
+      });
     }
 
     function crearSnapshotPedido() {
@@ -1260,6 +1619,33 @@
     btnLimpiar.addEventListener("click", limpiarProductos);
     btnNuevoPedido.addEventListener("click", nuevoPedido);
     btnExportar.addEventListener("click", exportarExcel);
+    btnEliminarProveedor.addEventListener("click", eliminarProveedorActual);
+    btnPapelera.addEventListener("click", mostrarPapelera);
+    btnDeshacer.addEventListener("click", function() {
+      const registro = (data.papelera || []).find(function(x) { return x.id === ultimaEliminacion; });
+      if (registro) restaurarRegistro(registro);
+    });
+    btnRespaldo.addEventListener("click", crearRespaldo);
+    btnRestaurar.addEventListener("click", function() { archivoRespaldo.click(); });
+    archivoRespaldo.addEventListener("change", function() { restaurarRespaldoArchivo(archivoRespaldo.files[0]); });
+    modalSeguridad.addEventListener("click", function(e) { if (e.target === modalSeguridad) cerrarModal(); });
+    document.addEventListener("keydown", function(e) { if (e.key === "Escape" && modalSeguridad.classList.contains("visible")) cerrarModal(); });
+    modalContenido.addEventListener("click", function(e) {
+      if (e.target.matches(".restaurar-papelera")) {
+        const registro = (data.papelera || []).find(function(x) { return x.id === e.target.dataset.id; });
+        cerrarModal();
+        restaurarRegistro(registro);
+      }
+      if (e.target.matches(".borrar-definitivo")) {
+        const id = e.target.dataset.id;
+        cerrarModal();
+        pedirPassword("Esta acción eliminará definitivamente el elemento de la papelera.", function() {
+          data.papelera = (data.papelera || []).filter(function(x) { return x.id !== id; });
+          guardarData();
+          mostrarPapelera();
+        });
+      }
+    });
 
     btnCerrarHistorial.addEventListener("click", ocultarHistorial);
 
@@ -1282,11 +1668,32 @@
     });
 
 
-    tablaProductos.addEventListener("change", function(e) {
+    tablaProductos.addEventListener("input", function(e) {
       if (e.target.matches("input[data-index]")) {
         const index = Number(e.target.dataset.index);
         const campo = e.target.dataset.campo;
         actualizar(index, campo, e.target.value);
+      }
+    });
+
+    tablaProductos.addEventListener("focusin", function(e) {
+      if (e.target.matches("input[data-index]")) {
+        requestAnimationFrame(function() { e.target.select(); });
+      }
+    });
+
+    tablaProductos.addEventListener("keydown", function(e) {
+      if (!e.target.matches("input[data-index]")) return;
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const editables = Array.from(tablaProductos.querySelectorAll('input[data-index]'));
+        const actual = editables.indexOf(e.target);
+        const siguiente = e.shiftKey ? actual - 1 : actual + 1;
+        if (editables[siguiente]) {
+          editables[siguiente].focus();
+          editables[siguiente].select();
+          editables[siguiente].scrollIntoView({ block: "nearest", inline: "nearest" });
+        }
       }
     });
 

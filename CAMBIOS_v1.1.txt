@@ -1,0 +1,20 @@
+ISO APP v1.1 - UX y protección de datos
+
+Contraseña administrativa inicial: ISO2026
+
+Cambios principales:
+- Campos numéricos 100% digitables y sin flechas laterales.
+- Ceros como placeholder: 0 en cantidades y 0.00 en costo.
+- TAB avanza horizontalmente por las celdas y continúa en la fila siguiente.
+- Edición al primer clic y selección automática del contenido.
+- La tabla ya no se reconstruye al escribir; el foco se mantiene.
+- Cálculos y totales se actualizan inmediatamente.
+- Contraseña para eliminar productos, limpiar productos y eliminar proveedores.
+- Papelera sincronizada con la misma base de datos.
+- Restaurar elementos eliminados.
+- Eliminación definitiva protegida por contraseña.
+- Botón para deshacer la última eliminación.
+- Crear y restaurar respaldos JSON.
+- Antes de restaurar un respaldo, se descarga automáticamente una copia de la base actual.
+- La clave localStorage pedidosInternacionales_v2 se conserva.
+- Los cambios siguen guardándose en localStorage y sincronizándose con Firebase.
